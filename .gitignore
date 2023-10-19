@@ -1,0 +1,14 @@
+hub/conf/jhub.key
+hub/conf/jhub.crt
+util
+util/*
+**/__pycache__
+__pycache__/
+gpu_allocator/app/__pycache__
+gpu_allocator/app/__pycache__/*
+gpu_allocator/app/models/__pycache__
+gpu_allocator/app/models/__pycache__/*
+gpu_allocator/app/routes/__pycache__
+gpu_allocator/app/routes/__pycache__/*
+*.py[cod]
+*$py.classs
