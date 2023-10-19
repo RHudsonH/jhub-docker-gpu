@@ -1,0 +1,40 @@
+version: "3.8"
+services:
+  hub:
+    build:
+      context: ./hub
+    image: jupyter-hub
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+      - "8081:8081"
+    volumes:
+      - type: bind
+        source: /home/hudson/Projects/jupyterhub/hub/conf/jupyterhub_config.py
+        target: /conf/jupyterhub_config.py
+      - type: bind
+        source: /etc/passwd
+        target: /etc/passwd
+      - type: bind
+        source: /etc/shadow
+        target: /etc/shadow
+      - type: bind
+        source: /etc/group
+        target: /etc/group
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+
+  gpu_allocator:
+    build:
+      context: ./gpu_allocator
+    image: gpu_allocator
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+
+
+  #proxy:
+  #db:
