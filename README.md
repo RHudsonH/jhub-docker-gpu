@@ -16,38 +16,40 @@ Other authentication options that I need to explore include LDAP, FreeIPA (or Re
 This project is currently using the `dockerspawner.DockerSpawner` spawner. I need to look more into the `dockerspaner.SystemUser` spawner too as it may more closely align with my design goals.
 
 ### Single User Environment ###
+
+
 ### Proxy ###
 
 ## GPU allocation ##
 Using the `--gpus` flag with docker is how access to GPUs is requested. 
 
 Example: Requesting all GPUs
-```
+```shell
 docker run --gpus 'all,capabilities=utility' --rm ubuntu nvidia-smi
 ```
 
-Example: Requesting 2 GPUs
-```
+Example: Requesting 2 GPUs[^quantiy_by_number]
+```shell
 docker run --gpus '2,capabilities=utility' --rm ubuntu nvidia-smi
 ```
 
 Example: Requesting a single specific GPU by position
-```
+```shell
 docker run --gpus 'device=2,capabilities=utility' --rm ubuntu nvidia-smi
 ```
 
 Example: Requesting 2 specifig CPUs by position
-```
+```shell
 docker run --gpus '"device=0,2",capabilities=utility' --rm ubuntu nvidia-smi
 ```
 
 Example: Requesting a single specifig GPU by uuid
-```
+```shell
 docker run -it --rm --gpus device=GPU-711c12b7-d90f-a41c-ad1d-07017ee178fc ubuntu nvidia-smi
 ```
 
 Exmaple: Requesting 2 specific GPUs by uuid
-```
+```shell
 docker run -ti --rm --gpus '"device=GPU-711c12b7-d90f-a41c-ad1d-07017ee178fc,GPU-8b1cf8a5-7a04-ac63-0be8-c52f43bf326a",capabilities=utility' ubuntu nvidia-smi
 ```
 
@@ -55,6 +57,7 @@ The problem with simply requesting a number of GPUs for each single user environ
 
 Some way to track and allocate GPUs is needed.
 
+[^quantity_by_number]: I've noticed that this isn't really talked about in the docker documentation. I confirmed that it works by testing it, but this may not be a reliable way to request a number of GPUs.
 ### The GPU Allocator ###
 
 The GPU Allocator is a simple api that I've written using flask. Using it's REST API i can be populated with a list of uuids, which it will store and track. Before launching a single user server it can be querried for an available gpu uuid that can be requested when creating the new single user server container.
