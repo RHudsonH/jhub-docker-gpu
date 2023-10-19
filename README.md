@@ -28,7 +28,9 @@ Example: Requesting all GPUs
 docker run --gpus 'all,capabilities=utility' --rm ubuntu nvidia-smi
 ```
 
-Example: Requesting 2 GPUs[^quantiy_by_number]
+Example: Requesting 2 GPUs[^GPUByQuantity]
+> [!NOTE]
+> I've noticed that this isn't really talked about in the docker documentation. I confirmed that it works by testing it, but this may not be a reliable way to request a number of GPUs.
 ```shell
 docker run --gpus '2,capabilities=utility' --rm ubuntu nvidia-smi
 ```
@@ -57,7 +59,6 @@ The problem with simply requesting a number of GPUs for each single user environ
 
 Some way to track and allocate GPUs is needed.
 
-[^quantity_by_number]: I've noticed that this isn't really talked about in the docker documentation. I confirmed that it works by testing it, but this may not be a reliable way to request a number of GPUs.
 ### The GPU Allocator ###
 
 The GPU Allocator is a simple api that I've written using flask. Using it's REST API i can be populated with a list of uuids, which it will store and track. Before launching a single user server it can be querried for an available gpu uuid that can be requested when creating the new single user server container.
