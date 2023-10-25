@@ -81,4 +81,5 @@ Docker compose is used to start the hub service.
 * Investigate other spawners.
 * Investigate other authentication methods.
 * De-allocate GPUs on exit.
-* Find a method to ensure single user servers don't stay around when idle.
+* Find a method to ensure single user servers don't stay around when idle. Maybe look at [jupyterhub-idle-culler](https://github.com/jupyterhub/jupyterhub-idle-culler)
+* Implement RBAC in the hub.

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Tracked Devices{% endblock %}</h1>
+    <div>Oversubscription is {% if oversubscribe %}Enabled{% else %}Disabled{% endif %}</div>
+{% endblock %}
+
+{% block content %}
+    {% for device in devices %}
+        <article class="post">
+            <header>
+                <div>
+                    <h2>{{ device['uuid'] }}</h2>
+                    <div class="about">Allocation Status: {{ device['allocation_count'] }}</div>
+                    {% if device['allocation_count'] > 0 %}
+                    <form action="{{ url_for('devices.release', uuid=device['uuid']) }}" method="POST">
+                        <input type="submit" value="Release" onclick="return confirm('Are you sure?');">
+                    </form>
+                    {% endif %}
+                </div>
+            </header>
+        </article>
+        {% if not loop.last %}
+            <hr>
+        {% endif %}
+    {% endfor %}
+{% endblock %}

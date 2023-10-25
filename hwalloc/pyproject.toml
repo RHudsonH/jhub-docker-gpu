@@ -1,0 +1,11 @@
+[project]
+name = "hwalloc"
+version = "1.0.0"
+description = "Basic api to track hardware allocations."
+dependencies = [
+    "flask",
+]
+
+[build-system]
+requires = ["flit_core<4"]
+build-backend = "flit_core.buildapi"
