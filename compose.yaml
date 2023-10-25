@@ -3,7 +3,10 @@ services:
   hub:
     build:
       context: ./hub
-    image: jupyter-hub
+    image: jupyter-hub:${JUPYTERHUB_TAG}
+    depends_on:
+      hwdetect:
+        condition: service_completed_successfully
     restart: unless-stopped
     ports:
       - "8001:8000"
@@ -25,16 +28,49 @@ services:
         source: /var/run/docker.sock
         target: /var/run/docker.sock
 
-  gpu_allocator:
+  # Be careful. This is not idempotent and will erase your DB if it already exists.
+  hwalloc-init:
+    image: hwalloc:${HWALLOC_TAG}
+    volumes:
+      - hwalloc-data:${FLASK_INSTANCE_PATH}
+    command: ["flask", "--app", "hwalloc", "init-db"]
+
+  hwdetect:
+    depends_on:
+      hwalloc:
+        condition: service_healthy
     build:
-      context: ./gpu_allocator
-    image: gpu_allocator
+      context: hwdetect
+      dockerfile: Dockerfile
+    image: hwdetect:${HWDETECT_TAG}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  hwalloc:
+    depends_on:
+      hwalloc-init:
+        condition: service_completed_successfully
+    build:
+      context: ./hwalloc
+      dockerfile: Dockerfile
+    image: hwalloc:${HWALLOC_TAG}
     restart: unless-stopped
+    volumes:
+      - hwalloc-data:${FLASK_INSTANCE_PATH}
     ports:
       - "5000:5000"
     environment:
       - FLASK_ENV=development
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client; conn = http.client.HTTPConnection('localhost', 5000); conn.request('GET', '/healthz'); response = conn.getresponse(); exit(0 if response.status == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-
-  #proxy:
-  #db:
+volumes:
+  hwalloc-data:

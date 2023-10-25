@@ -4,6 +4,7 @@ version = "1.0.0"
 description = "Basic api to track hardware allocations."
 dependencies = [
     "flask",
+    "PyYAML",
 ]
 
 [build-system]
