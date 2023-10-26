@@ -1,9 +1,40 @@
 # Configuration file for jupyterhub.
 from jupyter_client.localinterfaces import public_ips
-import dockerspawner
-import os
-import docker
-import socket
+from dockerspawner import DockerSpawner
+import os, docker, json, logging, socket, requests
+from docker.types import DeviceRequest
+
+class CustomDockerSpawner(DockerSpawner):
+    async def start(self, *args, **kwargs):
+        self.gpu_uuid = request_gpu()
+        logger = logging.getLogger('JupyterHub')
+        logger.debug(f'GPU UUID: {self.gpu_uuid}')
+
+        gpu_request = DeviceRequest(
+            driver='nvidia',
+            device_ids=[self.gpu_uuid],
+            capabilities=[['gpu']]
+        )
+
+        gpu_request_dict = {
+            'driver': gpu_request.driver,
+            'device_ids': gpu_request.device_ids,
+            'capabilities': gpu_request.capabilities
+        }
+
+        logger.debug(f'GPU Request: {json.dumps(gpu_request_dict, indent=2)}')
+
+        self.extra_host_config = {
+            'runtime': 'nvidia',
+            'device_requests': [gpu_request],
+        }
+            
+        return await super().start(*args, **kwargs)
+    
+    async def stop(self, now=False):
+        await super().stop(now)
+        release_gpu(self.gpu_uuid)
+
 
 # We need to find out what docker network we're attached to so we can avoid setting this in
 # multpile places.
@@ -26,6 +57,45 @@ def get_container_network_name():
         return None
     
 network_name = get_container_network_name()
+
+# This method will ask hwalloc for an available GPU
+def request_gpu():
+    url = "http://hwalloc:5000/api/v1/devices/request_next"
+    r = requests.get(url)
+    if r.status_code == 200:
+        device = r.json()
+        return device['uuid']
+    else:
+        return None
+    
+def release_gpu(gpu_uuid):
+    url = f"http://hwalloc:5000/api/v1/device/{gpu_uuid}/release"
+    r = requests.get(url)
+    if r.status_code == 200:
+        logging.info(f"Successfully released GPU {gpu_uuid}")
+    else:
+        logging.error(f"Failed to release GPU {gpu_uuid}: {r.text}")
+
+# This method will return a stanza for extra_host_config
+# This method should be assigned to c.DockerSpawner.extra_host_config
+def get_extra_host_config(spawner):
+    gpu_uuid = request_gpu()
+    if gpu_uuid is not None and isinstance(gpu_uuid, str):
+        config = {
+            'runtime': 'nvidia',
+            'resources': {
+                'devices': [
+                    {
+                        'driver': 'nvidia',
+                        'device_ids': [gpu_uuid,]
+                    }
+                ]
+            }
+        }
+        print(config)
+        return config
+    else:
+        return None
 
 c = get_config()  #noqa
 
@@ -803,22 +873,18 @@ c.JupyterHub.hub_ip = ip
 #  Default: 'jupyterhub.spawner.LocalProcessSpawner'
 # c.JupyterHub.spawner_class = 'jupyterhub.spawner.LocalProcessSpawner'
 
-
-
 notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR') or '/home/jovyan/work'
 
-c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
+#c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
+c.JupyterHub.spawner_class = CustomDockerSpawner
 c.DockerSpawner.debug = True
-c.DockerSpawner.extra_host_config = {
-        'runtime'    : 'nvidia',
-#       'privileged' : True
-}
+#c.DockerSpawner.extra_host_config = get_extra_host_config()
 if network_name:
-        c.DockerSpawner.network_name = network_name
+    c.DockerSpawner.network_name = network_name
 c.DockerSpawner.image = 'my_tf_singleuser:1.0.0'
 c.DockerSpawner.notebook_dir = notebook_dir
 c.DockerSpawner.volumes = { 'jupyterhub-user-{username}': notebook_dir }
-c.DockerSpawner.remove = False
+c.DockerSpawner.remove = True
 
 
 ## Path to SSL certificate file for the public facing interface of the proxy

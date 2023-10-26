@@ -27,6 +27,7 @@ services:
       - type: bind
         source: /var/run/docker.sock
         target: /var/run/docker.sock
+    command: [ "-f", "/conf/jupyterhub_config.py", "--debug" ]
 
   # Be careful. This is not idempotent and will erase your DB if it already exists.
   hwalloc-init:
